@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clear Authentication</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 400px;
+        }
+        button {
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-top: 1rem;
+        }
+        button:hover {
+            background-color: #1d4ed8;
+        }
+        .success {
+            color: #22c55e;
+            margin-top: 1rem;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Clear Authentication Data</h1>
+        <p>Click the button below to clear all cached authentication data and fix login issues.</p>
+        <button onclick="clearAuth()">Clear Authentication & Reload</button>
+        <p class="success" id="success">✓ Authentication cleared! Redirecting to login...</p>
+    </div>
+
+    <script>
+        function clearAuth() {
+            // Clear all localStorage
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+
+            // Show success message
+            document.getElementById('success').style.display = 'block';
+
+            // Redirect to login after 1 second
+            setTimeout(() => {
+                window.location.href = '/login';
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
