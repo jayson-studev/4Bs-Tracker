@@ -4,7 +4,7 @@ module.exports = {
       host: "127.0.0.1",
       port: 7545,       // Ganache GUI default
       network_id: "5777",
-      from: "0x3C8aAB0d6e81e6054EB9428c07996D3F71B7fBdB", // Chairman as deployer
+      from: "0x4d4F83388d5c49d512Ed32765d4a92A5A8fa16aD", // Chairman as deployer
     },
   },
   mocha: {

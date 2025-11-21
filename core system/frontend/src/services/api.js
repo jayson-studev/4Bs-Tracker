@@ -71,6 +71,7 @@ export const allocationsAPI = {
 export const proposalsAPI = {
   getGeneralFund: () => api.get('/allocations/general-fund'),
   getFundSources: () => api.get('/proposals/fund-sources'),
+  getCategoryBudgets: () => api.get('/proposals/category-budgets'),
   getAll: () => api.get('/proposals'),
   create: (data) => api.post('/proposals', data),
   approve: (id) => api.patch(`/proposals/${id}/approve`),

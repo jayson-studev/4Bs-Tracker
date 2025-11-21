@@ -35,6 +35,11 @@ async function safeSend(tx, from) {
   }
 }
 
+// Export the contract instance for use by other services
+export function getContract() {
+  return contract;
+}
+
 // Proposal is only recorded on chain when approved by Chairman
 export async function approveProposalOnChain({ proposal, treasurerAddress, chairmanAddress }) {
   if (!contract) return { txHash: null, onChain: false };

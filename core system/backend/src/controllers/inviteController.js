@@ -194,7 +194,16 @@ export const generateSuccessionTokens = async (req, res) => {
     return res.status(201).json({
       status: "success",
       message: "Succession tokens generated",
-      data: { chairman: chairmanToken, treasurer: treasurerToken }
+      data: {
+        chairman: {
+          token: chairmanToken,
+          expiresAt: validUntil
+        },
+        treasurer: {
+          token: treasurerToken,
+          expiresAt: validUntil
+        }
+      }
     });
   } catch (err) {
     console.error("generateSuccessionTokens error:", err);

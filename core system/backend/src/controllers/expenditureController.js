@@ -20,47 +20,60 @@ const calculateAvailableBalance = async () => {
   const totalProposals = proposals.reduce((sum, prop) => sum + prop.amount, 0);
 
   return {
+    generalFund: totalIncome,
     totalIncome,
     totalAllocations,
     totalExpenditures,
     totalProposals,
-    availableBalance: totalIncome - totalAllocations - totalExpenditures - totalProposals
+    availableBalance: totalIncome - totalAllocations // Unallocated General Fund
   };
 };
 
 export const submitExpenditure = async (req, res) => {
   try {
-    const { amount, purpose, fundSource, proposalId, supportingDocument } = req.body;
+    const { proposalId, supportingDocument } = req.body;
 
     // Validate required fields
-    if (!amount || !purpose || !fundSource || !supportingDocument) {
+    if (!proposalId || !supportingDocument) {
       return res.status(400).json({
         status: "error",
-        message: "Missing required fields: amount, purpose, fundSource, supportingDocument"
+        message: "Missing required fields: proposalId, supportingDocument"
       });
     }
 
-    // Check if there's sufficient income
-    const balanceInfo = await calculateAvailableBalance();
-    if (balanceInfo.totalIncome === 0) {
+    // Verify that the proposal exists and is approved
+    const proposal = await Proposal.findById(proposalId);
+    if (!proposal) {
+      return res.status(404).json({
+        status: "error",
+        message: "Proposal not found. Please select a valid proposal."
+      });
+    }
+    if (proposal.status !== "APPROVED") {
       return res.status(400).json({
         status: "error",
-        message: "Cannot create expenditure: No income has been recorded yet. Please record income first."
+        message: "Can only create expenditure for APPROVED proposals. This proposal is currently " + proposal.status
       });
     }
 
-    if (balanceInfo.availableBalance < amount) {
+    // Check if expenditure already exists for this proposal
+    const existingExpenditure = await Expenditure.findOne({
+      proposalId,
+      status: { $in: ["PROPOSED", "APPROVED"] }
+    });
+    if (existingExpenditure) {
       return res.status(400).json({
         status: "error",
-        message: `Insufficient balance. Available: PHP ${balanceInfo.availableBalance.toFixed(2)}, Requested: PHP ${amount}`
+        message: "An expenditure record already exists for this proposal."
       });
     }
 
+    // Create expenditure with data automatically pulled from the proposal
     const expenditure = await Expenditure.create({
-      amount,
-      purpose,
-      fundSource,
-      proposalId: proposalId || null,
+      amount: proposal.amount,
+      purpose: proposal.purpose,
+      fundSource: proposal.fundSource,
+      proposalId,
       supportingDocument,
       status: "PROPOSED",
       createdBy: req.user._id,

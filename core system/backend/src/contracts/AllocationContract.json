@@ -126,7 +126,8 @@
         }
       ],
       "stateMutability": "view",
-      "type": "function"
+      "type": "function",
+      "constant": true
     },
     {
       "inputs": [],
@@ -139,7 +140,8 @@
         }
       ],
       "stateMutability": "view",
-      "type": "function"
+      "type": "function",
+      "constant": true
     },
     {
       "inputs": [
@@ -196,7 +198,8 @@
         }
       ],
       "stateMutability": "view",
-      "type": "function"
+      "type": "function",
+      "constant": true
     },
     {
       "inputs": [
@@ -257,7 +260,8 @@
         }
       ],
       "stateMutability": "view",
-      "type": "function"
+      "type": "function",
+      "constant": true
     },
     {
       "inputs": [],
@@ -312,7 +316,8 @@
         }
       ],
       "stateMutability": "view",
-      "type": "function"
+      "type": "function",
+      "constant": true
     },
     {
       "inputs": [
@@ -378,7 +383,8 @@
         }
       ],
       "stateMutability": "view",
-      "type": "function"
+      "type": "function",
+      "constant": true
     },
     {
       "inputs": [
@@ -402,7 +408,8 @@
         }
       ],
       "stateMutability": "view",
-      "type": "function"
+      "type": "function",
+      "constant": true
     },
     {
       "inputs": [],
@@ -415,7 +422,8 @@
         }
       ],
       "stateMutability": "pure",
-      "type": "function"
+      "type": "function",
+      "constant": true
     }
   ],
   "metadata": "{\"compiler\":{\"version\":\"0.8.19+commit.7dd6d404\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_officialsContractAddress\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"inputs\":[],\"name\":\"AllocTypeRequired\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"ApprovalRequired\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"DocumentHashRequired\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"FundTypeRequired\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"InvalidAddress\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"InvalidAllocationID\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"InvalidAllocationType\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"InvalidAmount\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"InvalidDocumentHash\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"NotActiveOfficial\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"OffsetOutOfBounds\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"ReentrantCall\",\"type\":\"error\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"id\",\"type\":\"uint256\"},{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"string\",\"name\":\"allocationType\",\"type\":\"string\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"treasurerAddress\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"chairmanAddress\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"timestamp\",\"type\":\"uint256\"}],\"name\":\"AllocationRecorded\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"allocationCount\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getAllAllocations\",\"outputs\":[{\"components\":[{\"internalType\":\"uint256\",\"name\":\"id\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"internalType\":\"string\",\"name\":\"allocationType\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"fundType\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"documentHash\",\"type\":\"string\"},{\"internalType\":\"address\",\"name\":\"treasurerAddress\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"chairmanAddress\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"timestamp\",\"type\":\"uint256\"}],\"internalType\":\"struct AllocationContract.Allocation[]\",\"name\":\"\",\"type\":\"tuple[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_id\",\"type\":\"uint256\"}],\"name\":\"getAllocation\",\"outputs\":[{\"components\":[{\"internalType\":\"uint256\",\"name\":\"id\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"internalType\":\"string\",\"name\":\"allocationType\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"fundType\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"documentHash\",\"type\":\"string\"},{\"internalType\":\"address\",\"name\":\"treasurerAddress\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"chairmanAddress\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"timestamp\",\"type\":\"uint256\"}],\"internalType\":\"struct AllocationContract.Allocation\",\"name\":\"\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_offset\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_limit\",\"type\":\"uint256\"}],\"name\":\"getAllocationsPaginated\",\"outputs\":[{\"components\":[{\"internalType\":\"uint256\",\"name\":\"id\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"internalType\":\"string\",\"name\":\"allocationType\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"fundType\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"documentHash\",\"type\":\"string\"},{\"internalType\":\"address\",\"name\":\"treasurerAddress\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"chairmanAddress\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"timestamp\",\"type\":\"uint256\"}],\"internalType\":\"struct AllocationContract.Allocation[]\",\"name\":\"\",\"type\":\"tuple[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getTotalAllocationAmount\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getValidAllocationTypes\",\"outputs\":[{\"internalType\":\"string[8]\",\"name\":\"\",\"type\":\"string[8]\"}],\"stateMutability\":\"pure\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"officialsContract\",\"outputs\":[{\"internalType\":\"contract IBarangayOfficials\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_amount\",\"type\":\"uint256\"},{\"internalType\":\"string\",\"name\":\"_allocationType\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"_fundType\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"_documentHash\",\"type\":\"string\"},{\"internalType\":\"address\",\"name\":\"_treasurerAddress\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_chairmanAddress\",\"type\":\"address\"}],\"name\":\"recordAllocation\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_id\",\"type\":\"uint256\"},{\"internalType\":\"string\",\"name\":\"_documentHash\",\"type\":\"string\"}],\"name\":\"verifyAllocationDocument\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"project:/contracts/AllocationContract.sol\":\"AllocationContract\"},\"evmVersion\":\"paris\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\"},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[]},\"sources\":{\"project:/contracts/AllocationContract.sol\":{\"keccak256\":\"0xf4f488452f0c768674efac4d3979934649f0dedebc6bd36a47e2882d514964eb\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://8014df9fe7b4e97c2680cb73a28a5a86c779e69a3a9a19107ff1c5446bae2fe1\",\"dweb:/ipfs/QmTJxnnCheJhSnP2EoW3NcXM26vB6uLqeHSXdA2f7eKBxo\"]}},\"version\":1}",
@@ -18432,12 +18440,13 @@
     "5777": {
       "events": {},
       "links": {},
-      "address": "0x7ff7fd75163d400Aa2027514e4Ab3C218161F083",
-      "transactionHash": "0x901a046fb1a4f61cda0323b3ea7cb9c803872d407d7d3d787c2173c9829f9e64"
+      "address": "0x4a497599c4c8672Ad720fa14caf487b27F170406",
+      "transactionHash": "0x545f6195258044d48d6bb37146e3c84505d218fc2556b52472a9ea7f2beb5402"
     }
   },
   "schemaVersion": "3.4.16",
-  "updatedAt": "2025-11-04T16:41:08.116Z",
+  "updatedAt": "2025-11-14T22:31:43.915Z",
+  "networkType": "ethereum",
   "devdoc": {
     "kind": "dev",
     "methods": {},

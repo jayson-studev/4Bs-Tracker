@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { allocationsAPI } from '../services/api';
+import { allocationsAPI, proposalsAPI } from '../services/api';
 import { Plus, Upload, FileText, X } from 'lucide-react';
 
 const Allocations = () => {
   const { isTreasurer, isChairman } = useAuth();
   const [allocationTypes, setAllocationTypes] = useState([]);
   const [allocations, setAllocations] = useState([]);
+  const [categoryBudgets, setCategoryBudgets] = useState(null);
   const [generalFundInfo, setGeneralFundInfo] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDocumentModal, setShowDocumentModal] = useState(false);
@@ -30,6 +31,7 @@ const Allocations = () => {
     fetchAllocationTypes();
     fetchAllocations();
     fetchGeneralFund();
+    fetchCategoryBudgets();
   }, []);
 
   const fetchAllocationTypes = async () => {
@@ -59,6 +61,15 @@ const Allocations = () => {
       setGeneralFundInfo(response.data.data);
     } catch (error) {
       console.error('Error fetching general fund:', error);
+    }
+  };
+
+  const fetchCategoryBudgets = async () => {
+    try {
+      const response = await proposalsAPI.getCategoryBudgets();
+      setCategoryBudgets(response.data.data);
+    } catch (error) {
+      console.error('Error fetching category budgets:', error);
     }
   };
 
@@ -118,6 +129,7 @@ const Allocations = () => {
       setUploadedFileName('');
       fetchAllocations();
       fetchGeneralFund();
+      fetchCategoryBudgets();
     } catch (error) {
       setMessage({
         type: 'error',
@@ -144,6 +156,7 @@ const Allocations = () => {
       });
       fetchAllocations();
       fetchGeneralFund();
+      fetchCategoryBudgets();
     } catch (error) {
       setMessage({
         type: 'error',
@@ -184,6 +197,7 @@ const Allocations = () => {
       setRejectingAllocationId(null);
       fetchAllocations();
       fetchGeneralFund();
+      fetchCategoryBudgets();
     } catch (error) {
       setMessage({
         type: 'error',
@@ -233,22 +247,14 @@ const Allocations = () => {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
               <div>
                 <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
-                  Total Income (General Fund)
-                </p>
-                <p style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--success)' }}>
-                  PHP {generalFundInfo.generalFund.toFixed(2)}
-                </p>
-              </div>
-              <div>
-                <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
-                  Available Balance
+                  Available Income
                 </p>
                 <p style={{
                   fontSize: '1.5rem',
                   fontWeight: 'bold',
-                  color: generalFundInfo.availableBalance >= 0 ? 'var(--success)' : 'var(--danger)'
+                  color: (Number(generalFundInfo.availableBalance) || 0) >= 0 ? 'var(--success)' : 'var(--danger)'
                 }}>
-                  PHP {generalFundInfo.availableBalance.toFixed(2)}
+                  PHP {(Number(generalFundInfo.availableBalance) || 0).toFixed(2)}
                 </p>
               </div>
               <div>
@@ -256,7 +262,7 @@ const Allocations = () => {
                   Total Allocations
                 </p>
                 <p style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--primary)' }}>
-                  PHP {generalFundInfo.totalAllocations.toFixed(2)}
+                  PHP {(Number(generalFundInfo.totalAllocations) || 0).toFixed(2)}
                 </p>
               </div>
             </div>
@@ -270,27 +276,60 @@ const Allocations = () => {
         </div>
       )}
 
-      {/* Allocation Types Info */}
-      <div className="card" style={{ marginBottom: '2rem' }}>
-        <h2 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '1rem' }}>
-          Available Allocation Types
-        </h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '0.75rem' }}>
-          {allocationTypes.map((type, index) => (
-            <div
-              key={index}
-              style={{
-                padding: '0.75rem',
-                backgroundColor: 'var(--background)',
-                borderRadius: '0.375rem',
-                fontSize: '0.875rem',
-              }}
-            >
-              {type}
-            </div>
-          ))}
+      {/* Category Budgets */}
+      {categoryBudgets && (
+        <div className="card" style={{ marginBottom: '2rem' }}>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '1rem' }}>
+            Available Allocation Types
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
+            {allocationTypes.map((type, index) => {
+              const budget = categoryBudgets.categoryBudgets[type];
+              return (
+                <div
+                  key={index}
+                  style={{
+                    padding: '1rem',
+                    backgroundColor: 'var(--background)',
+                    borderRadius: '0.5rem',
+                    border: '1px solid var(--border)',
+                  }}
+                >
+                  <h3 style={{ fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.5rem' }}>
+                    {type}
+                  </h3>
+                  {budget ? (
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                        <span>Allocated:</span>
+                        <span style={{ fontWeight: '600', color: 'var(--text)' }}>
+                          PHP {(Number(budget.allocated) || 0).toFixed(2)}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                        <span>Spent (Proposals):</span>
+                        <span style={{ fontWeight: '600', color: 'var(--warning)' }}>
+                          PHP {(Number(budget.spent) || 0).toFixed(2)}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span>Available Balance:</span>
+                        <span style={{ fontWeight: '600', color: (Number(budget.remaining) || 0) > 0 ? 'var(--success)' : 'var(--danger)' }}>
+                          PHP {(Number(budget.remaining) || 0).toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+                      No allocations yet
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Allocations List */}
       <div className="card">
@@ -354,8 +393,8 @@ const Allocations = () => {
                       Created
                     </p>
                     <p style={{ fontWeight: '500' }}>
-                      {allocation.recordedAt && !isNaN(new Date(allocation.recordedAt).getTime())
-                        ? new Date(allocation.recordedAt).toLocaleDateString()
+                      {allocation.createdAt && !isNaN(new Date(allocation.createdAt).getTime())
+                        ? new Date(allocation.createdAt).toLocaleDateString()
                         : 'N/A'}
                     </p>
                   </div>
@@ -671,13 +710,6 @@ const Allocations = () => {
               <h3 style={{ fontSize: '1.25rem', fontWeight: '600' }}>
                 Supporting Document
               </h3>
-              <button
-                onClick={() => setShowDocumentModal(false)}
-                className="btn btn-outline"
-                style={{ padding: '0.5rem' }}
-              >
-                <X size={20} />
-              </button>
             </div>
             <div className="modal-body" style={{ padding: 0, maxHeight: '70vh', overflow: 'auto' }}>
               {selectedDocument.startsWith('data:application/pdf') ? (

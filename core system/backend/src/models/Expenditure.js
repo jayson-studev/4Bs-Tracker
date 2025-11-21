@@ -21,7 +21,7 @@ const expenditureSchema = new mongoose.Schema({
     enum: EXPENDITURE_FUND_SOURCES,
     message: "Invalid fund source. Must be one of the allocated fund types."
   },
-  proposalId: { type: mongoose.Schema.Types.ObjectId, ref: "Proposal" }, // Optional link to proposal
+  proposalId: { type: mongoose.Schema.Types.ObjectId, ref: "Proposal", required: true }, // Required link to approved proposal
   supportingDocument: { type: String, required: true }, // File path or base64
   documentHash: String, // SHA-256 hash, generated on approval
 

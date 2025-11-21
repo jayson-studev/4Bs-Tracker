@@ -5,26 +5,55 @@ import Expenditure from "../models/Expenditure.js";
 import { approveProposalOnChain } from "../services/proposalChainService.js";
 import crypto from "crypto";
 
-// Helper function to calculate available balance
-const calculateAvailableBalance = async () => {
+// Helper function to calculate available balance per fund category
+const calculateCategoryBudgets = async () => {
+  // Get total income (General Fund)
   const incomes = await Income.find({ onChain: true });
   const totalIncome = incomes.reduce((sum, income) => sum + income.amount, 0);
 
+  // Get approved allocations grouped by category (purpose)
   const allocations = await Allocation.find({ status: "APPROVED" });
-  const totalAllocations = allocations.reduce((sum, alloc) => sum + alloc.amount, 0);
+  const totalAllocated = allocations.reduce((sum, alloc) => sum + alloc.amount, 0);
 
-  const expenditures = await Expenditure.find({ status: "APPROVED" });
-  const totalExpenditures = expenditures.reduce((sum, exp) => sum + exp.amount, 0);
+  // Calculate allocated amount per category
+  const categoryAllocations = {};
+  allocations.forEach(alloc => {
+    if (!categoryAllocations[alloc.purpose]) {
+      categoryAllocations[alloc.purpose] = 0;
+    }
+    categoryAllocations[alloc.purpose] += alloc.amount;
+  });
 
+  // Get approved proposals grouped by fund source
   const proposals = await Proposal.find({ status: "APPROVED" });
-  const totalProposals = proposals.reduce((sum, prop) => sum + prop.amount, 0);
+  const categoryProposals = {};
+  proposals.forEach(prop => {
+    if (!categoryProposals[prop.fundSource]) {
+      categoryProposals[prop.fundSource] = 0;
+    }
+    categoryProposals[prop.fundSource] += prop.amount;
+  });
+
+  // Calculate remaining budget per category
+  const categoryBudgets = {};
+  Object.keys(categoryAllocations).forEach(category => {
+    const allocated = categoryAllocations[category] || 0;
+    const spent = categoryProposals[category] || 0;
+    categoryBudgets[category] = {
+      allocated,
+      spent,
+      remaining: allocated - spent
+    };
+  });
+
+  // Calculate unallocated general fund
+  const unallocatedGeneralFund = totalIncome - totalAllocated;
 
   return {
     totalIncome,
-    totalAllocations,
-    totalExpenditures,
-    totalProposals,
-    availableBalance: totalIncome - totalAllocations - totalExpenditures - totalProposals
+    totalAllocated,
+    unallocatedGeneralFund,
+    categoryBudgets
   };
 };
 
@@ -40,19 +69,30 @@ export const submitProposal = async (req, res) => {
       });
     }
 
-    // Check if there's sufficient income
-    const balanceInfo = await calculateAvailableBalance();
-    if (balanceInfo.totalIncome === 0) {
+    // Check category-specific budget
+    const budgetInfo = await calculateCategoryBudgets();
+
+    if (budgetInfo.totalIncome === 0) {
       return res.status(400).json({
         status: "error",
         message: "Cannot create proposal: No income has been recorded yet. Please record income first."
       });
     }
 
-    if (balanceInfo.availableBalance < amount) {
+    // Check if the fund category has been allocated
+    const categoryBudget = budgetInfo.categoryBudgets[fundSource];
+    if (!categoryBudget) {
       return res.status(400).json({
         status: "error",
-        message: `Insufficient balance. Available: PHP ${balanceInfo.availableBalance.toFixed(2)}, Requested: PHP ${amount}`
+        message: `No budget allocated for "${fundSource}". Please create an allocation for this fund category first.`
+      });
+    }
+
+    // Check if there's sufficient budget in this category
+    if (categoryBudget.remaining < Number(amount)) {
+      return res.status(400).json({
+        status: "error",
+        message: `Insufficient budget. Available: PHP ${(Number(categoryBudget.remaining) || 0).toFixed(2)}, Requested: PHP ${(Number(amount) || 0).toFixed(2)}`
       });
     }
 
@@ -212,6 +252,19 @@ export const getProposalFundSources = async (req, res) => {
       status: "success",
       message: "Valid proposal fund sources retrieved",
       data: PROPOSAL_FUND_SOURCES
+    });
+  } catch (err) {
+    return res.status(400).json({ status: "error", message: err.message });
+  }
+};
+
+export const getCategoryBudgets = async (req, res) => {
+  try {
+    const budgetInfo = await calculateCategoryBudgets();
+    return res.json({
+      status: "success",
+      message: "Category budgets retrieved successfully",
+      data: budgetInfo
     });
   } catch (err) {
     return res.status(400).json({ status: "error", message: err.message });

@@ -7,6 +7,7 @@ const Proposals = () => {
   const { isTreasurer, isChairman } = useAuth();
   const [fundSources, setFundSources] = useState([]);
   const [proposals, setProposals] = useState([]);
+  const [categoryBudgets, setCategoryBudgets] = useState(null);
   const [generalFundInfo, setGeneralFundInfo] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDocumentModal, setShowDocumentModal] = useState(false);
@@ -33,6 +34,7 @@ const Proposals = () => {
     fetchFundSources();
     fetchProposals();
     fetchGeneralFund();
+    fetchCategoryBudgets();
   }, []);
 
   const fetchFundSources = async () => {
@@ -62,6 +64,15 @@ const Proposals = () => {
       setGeneralFundInfo(response.data.data);
     } catch (error) {
       console.error('Error fetching general fund:', error);
+    }
+  };
+
+  const fetchCategoryBudgets = async () => {
+    try {
+      const response = await proposalsAPI.getCategoryBudgets();
+      setCategoryBudgets(response.data.data);
+    } catch (error) {
+      console.error('Error fetching category budgets:', error);
     }
   };
 
@@ -126,6 +137,7 @@ const Proposals = () => {
       // Refresh proposals list
       fetchProposals();
       fetchGeneralFund();
+      fetchCategoryBudgets();
     } catch (error) {
       setMessage({
         type: 'error',
@@ -152,6 +164,7 @@ const Proposals = () => {
       });
       fetchProposals();
       fetchGeneralFund();
+      fetchCategoryBudgets();
     } catch (error) {
       setMessage({
         type: 'error',
@@ -192,6 +205,7 @@ const Proposals = () => {
       setRejectingProposalId(null);
       fetchProposals();
       fetchGeneralFund();
+      fetchCategoryBudgets();
     } catch (error) {
       setMessage({
         type: 'error',
@@ -222,7 +236,10 @@ const Proposals = () => {
         </div>
         {isTreasurer && (
           <button
-            onClick={() => setShowCreateModal(true)}
+            onClick={() => {
+              setShowCreateModal(true);
+              setMessage({ type: '', text: '' });
+            }}
             className="btn btn-primary"
           >
             <Plus size={16} />
@@ -241,22 +258,14 @@ const Proposals = () => {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
               <div>
                 <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
-                  Total Income (General Fund)
-                </p>
-                <p style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--success)' }}>
-                  PHP {generalFundInfo.generalFund.toFixed(2)}
-                </p>
-              </div>
-              <div>
-                <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
-                  Available Balance
+                  Income Balance
                 </p>
                 <p style={{
                   fontSize: '1.5rem',
                   fontWeight: 'bold',
-                  color: generalFundInfo.availableBalance >= 0 ? 'var(--success)' : 'var(--danger)'
+                  color: (Number(generalFundInfo.availableBalance) || 0) >= 0 ? 'var(--success)' : 'var(--danger)'
                 }}>
-                  PHP {generalFundInfo.availableBalance.toFixed(2)}
+                  PHP {(Number(generalFundInfo.availableBalance) || 0).toFixed(2)}
                 </p>
               </div>
               <div>
@@ -264,7 +273,7 @@ const Proposals = () => {
                   Total Proposals
                 </p>
                 <p style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--primary)' }}>
-                  PHP {generalFundInfo.totalProposals.toFixed(2)}
+                  PHP {(Number(generalFundInfo.totalProposals) || 0).toFixed(2)}
                 </p>
               </div>
             </div>
@@ -272,33 +281,88 @@ const Proposals = () => {
         </div>
       )}
 
-      {message.text && (
-        <div className={`alert alert-${message.type}`} style={{ marginBottom: '1.5rem' }}>
+      {message.text && message.type === 'success' && (
+        <div className="alert alert-success" style={{ marginBottom: '1.5rem' }}>
           {message.text}
         </div>
       )}
 
-      {/* Fund Sources Info */}
-      <div className="card" style={{ marginBottom: '2rem' }}>
-        <h2 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '1rem' }}>
-          Available Fund Sources
-        </h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '0.75rem' }}>
-          {fundSources.map((source, index) => (
-            <div
-              key={index}
-              style={{
-                padding: '0.75rem',
-                backgroundColor: 'var(--background)',
-                borderRadius: '0.375rem',
-                fontSize: '0.875rem',
-              }}
-            >
-              {source}
-            </div>
-          ))}
+      {/* Category Budgets */}
+      {categoryBudgets && (
+        <div className="card" style={{ marginBottom: '2rem' }}>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '1rem' }}>
+            Category Budgets
+          </h2>
+          <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+            Total Income: PHP {(Number(categoryBudgets.totalIncome) || 0).toFixed(2)} |
+            Total Allocated: PHP {(Number(categoryBudgets.totalAllocated) || 0).toFixed(2)} |
+            Unallocated: PHP {(Number(categoryBudgets.unallocatedGeneralFund) || 0).toFixed(2)}
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
+            {Object.keys(categoryBudgets.categoryBudgets).length === 0 ? (
+              <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', padding: '1rem' }}>
+                No allocations have been made yet. Please create allocations first.
+              </p>
+            ) : (
+              Object.keys(categoryBudgets.categoryBudgets).map((category) => {
+                const budget = categoryBudgets.categoryBudgets[category];
+                const percentageUsed = (budget.spent / budget.allocated) * 100;
+                return (
+                  <div
+                    key={category}
+                    style={{
+                      padding: '1rem',
+                      backgroundColor: 'var(--background)',
+                      borderRadius: '0.5rem',
+                      border: '1px solid var(--border)',
+                    }}
+                  >
+                    <h3 style={{ fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.5rem' }}>
+                      {category}
+                    </h3>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                        <span>Allocated:</span>
+                        <span style={{ fontWeight: '600', color: 'var(--text)' }}>
+                          PHP {(Number(budget.allocated) || 0).toFixed(2)}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                        <span>Spent:</span>
+                        <span style={{ fontWeight: '600', color: 'var(--warning)' }}>
+                          PHP {(Number(budget.spent) || 0).toFixed(2)}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span>Remaining:</span>
+                        <span style={{ fontWeight: '600', color: (Number(budget.remaining) || 0) > 0 ? 'var(--success)' : 'var(--danger)' }}>
+                          PHP {(Number(budget.remaining) || 0).toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                    {/* Progress Bar */}
+                    <div style={{ marginTop: '0.5rem' }}>
+                      <div style={{ width: '100%', height: '6px', backgroundColor: 'var(--border)', borderRadius: '3px', overflow: 'hidden' }}>
+                        <div
+                          style={{
+                            width: `${Math.min(percentageUsed, 100)}%`,
+                            height: '100%',
+                            backgroundColor: percentageUsed > 90 ? 'var(--danger)' : percentageUsed > 70 ? 'var(--warning)' : 'var(--success)',
+                            transition: 'width 0.3s ease'
+                          }}
+                        />
+                      </div>
+                      <p style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '0.25rem', textAlign: 'right' }}>
+                        {percentageUsed.toFixed(1)}% used
+                      </p>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Proposals List */}
       <div className="card">
@@ -368,8 +432,8 @@ const Proposals = () => {
                       Created
                     </p>
                     <p style={{ fontWeight: '500' }}>
-                      {proposal.recordedAt && !isNaN(new Date(proposal.recordedAt).getTime())
-                        ? new Date(proposal.recordedAt).toLocaleDateString()
+                      {proposal.createdAt && !isNaN(new Date(proposal.createdAt).getTime())
+                        ? new Date(proposal.createdAt).toLocaleDateString()
                         : 'N/A'}
                     </p>
                   </div>
@@ -493,6 +557,26 @@ const Proposals = () => {
                     <p style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.25rem' }}>
                       This field is required
                     </p>
+                  )}
+                  {message.text && message.type === 'error' && message.text.includes('budget') && (
+                    <div
+                      style={{
+                        marginTop: '0.75rem',
+                        padding: '0.75rem',
+                        backgroundColor: '#FEE2E2',
+                        border: '2px solid #DC2626',
+                        borderRadius: '0.5rem',
+                        color: '#991B1B',
+                        fontWeight: '600',
+                        fontSize: '0.875rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem'
+                      }}
+                    >
+                      <span style={{ fontSize: '1.25rem' }}>⚠️</span>
+                      <span>{message.text}</span>
+                    </div>
                   )}
                 </div>
 
@@ -743,13 +827,6 @@ const Proposals = () => {
               <h3 style={{ fontSize: '1.25rem', fontWeight: '600' }}>
                 Supporting Document
               </h3>
-              <button
-                onClick={() => setShowDocumentModal(false)}
-                className="btn btn-outline"
-                style={{ padding: '0.5rem' }}
-              >
-                <X size={20} />
-              </button>
             </div>
             <div className="modal-body" style={{ padding: 0, maxHeight: '70vh', overflow: 'auto' }}>
               {selectedDocument.startsWith('data:application/pdf') ? (

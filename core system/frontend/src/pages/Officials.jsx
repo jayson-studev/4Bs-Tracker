@@ -11,8 +11,10 @@ const Officials = () => {
   const [officials, setOfficials] = useState([]);
 
   const [tokenForm, setTokenForm] = useState({
-    chairmanEmail: '',
-    treasurerEmail: '',
+    nextChairmanEmail: '',
+    nextTreasurerEmail: '',
+    termStart: '',
+    termEnd: '',
   });
 
   useEffect(() => {
@@ -34,12 +36,15 @@ const Officials = () => {
     setMessage({ type: '', text: '' });
 
     try {
-      const data = {};
-      if (tokenForm.chairmanEmail) {
-        data.chairmanEmail = tokenForm.chairmanEmail;
+      const data = {
+        termStart: tokenForm.termStart,
+        termEnd: tokenForm.termEnd,
+      };
+      if (tokenForm.nextChairmanEmail) {
+        data.nextChairmanEmail = tokenForm.nextChairmanEmail;
       }
-      if (tokenForm.treasurerEmail) {
-        data.treasurerEmail = tokenForm.treasurerEmail;
+      if (tokenForm.nextTreasurerEmail) {
+        data.nextTreasurerEmail = tokenForm.nextTreasurerEmail;
       }
 
       const response = await inviteAPI.generateSuccessionTokens(data);
@@ -225,44 +230,77 @@ const Officials = () => {
                 <div className="modal-body">
                   <div className="alert alert-info" style={{ marginBottom: '1.5rem' }}>
                     <h4 style={{ fontWeight: '600', marginBottom: '0.5rem' }}>
-                      Optional Email Pre-Assignment
+                      Generate Succession Tokens
                     </h4>
                     <p style={{ fontSize: '0.875rem' }}>
-                      You can optionally pre-assign email addresses for the next term officials.
-                      If provided, only those email addresses can use the respective tokens.
-                      Leave blank if you want to allow any email to use the tokens.
+                      Set the term dates for the next officials and optionally pre-assign email addresses.
+                      If emails are provided, only those email addresses can use the respective tokens.
                     </p>
                   </div>
 
                   <div style={{ marginBottom: '1rem' }}>
-                    <label htmlFor="chairmanEmail" className="label">
+                    <label htmlFor="termStart" className="label">
+                      Term Start Date <span style={{ color: 'var(--error)' }}>*</span>
+                    </label>
+                    <input
+                      type="date"
+                      id="termStart"
+                      name="termStart"
+                      className="input"
+                      value={tokenForm.termStart}
+                      onChange={(e) =>
+                        setTokenForm({ ...tokenForm, termStart: e.target.value })
+                      }
+                      required
+                    />
+                  </div>
+
+                  <div style={{ marginBottom: '1rem' }}>
+                    <label htmlFor="termEnd" className="label">
+                      Term End Date <span style={{ color: 'var(--error)' }}>*</span>
+                    </label>
+                    <input
+                      type="date"
+                      id="termEnd"
+                      name="termEnd"
+                      className="input"
+                      value={tokenForm.termEnd}
+                      onChange={(e) =>
+                        setTokenForm({ ...tokenForm, termEnd: e.target.value })
+                      }
+                      required
+                    />
+                  </div>
+
+                  <div style={{ marginBottom: '1rem' }}>
+                    <label htmlFor="nextChairmanEmail" className="label">
                       Chairman Email (Optional)
                     </label>
                     <input
                       type="email"
-                      id="chairmanEmail"
-                      name="chairmanEmail"
+                      id="nextChairmanEmail"
+                      name="nextChairmanEmail"
                       className="input"
-                      value={tokenForm.chairmanEmail}
+                      value={tokenForm.nextChairmanEmail}
                       onChange={(e) =>
-                        setTokenForm({ ...tokenForm, chairmanEmail: e.target.value })
+                        setTokenForm({ ...tokenForm, nextChairmanEmail: e.target.value })
                       }
                       placeholder="chairman@example.com"
                     />
                   </div>
 
                   <div style={{ marginBottom: '1rem' }}>
-                    <label htmlFor="treasurerEmail" className="label">
+                    <label htmlFor="nextTreasurerEmail" className="label">
                       Treasurer Email (Optional)
                     </label>
                     <input
                       type="email"
-                      id="treasurerEmail"
-                      name="treasurerEmail"
+                      id="nextTreasurerEmail"
+                      name="nextTreasurerEmail"
                       className="input"
-                      value={tokenForm.treasurerEmail}
+                      value={tokenForm.nextTreasurerEmail}
                       onChange={(e) =>
-                        setTokenForm({ ...tokenForm, treasurerEmail: e.target.value })
+                        setTokenForm({ ...tokenForm, nextTreasurerEmail: e.target.value })
                       }
                       placeholder="treasurer@example.com"
                     />
@@ -421,7 +459,7 @@ const Officials = () => {
                     onClick={() => {
                       setShowGenerateTokensModal(false);
                       setTokens(null);
-                      setTokenForm({ chairmanEmail: '', treasurerEmail: '' });
+                      setTokenForm({ nextChairmanEmail: '', nextTreasurerEmail: '', termStart: '', termEnd: '' });
                     }}
                     className="btn btn-primary"
                   >

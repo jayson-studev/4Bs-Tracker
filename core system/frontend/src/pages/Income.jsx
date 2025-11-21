@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { incomeAPI } from '../services/api';
-import { Plus, Upload, TrendingUp } from 'lucide-react';
+import { Plus, Upload, TrendingUp, FileText } from 'lucide-react';
 
 const Income = () => {
   const { isTreasurer } = useAuth();
@@ -9,6 +9,8 @@ const Income = () => {
   const [incomeRecords, setIncomeRecords] = useState([]);
   const [generalFundInfo, setGeneralFundInfo] = useState(null);
   const [showRecordModal, setShowRecordModal] = useState(false);
+  const [showDocumentModal, setShowDocumentModal] = useState(false);
+  const [selectedDocument, setSelectedDocument] = useState(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [formErrors, setFormErrors] = useState({});
@@ -70,6 +72,11 @@ const Income = () => {
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleViewDocument = (document) => {
+    setSelectedDocument(document);
+    setShowDocumentModal(true);
   };
 
   const handleSubmit = async (e) => {
@@ -166,7 +173,7 @@ const Income = () => {
                   Total Income (General Fund)
                 </p>
                 <p style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--primary)' }}>
-                  PHP {generalFundInfo.generalFund.toFixed(2)}
+                  PHP {(Number(generalFundInfo.generalFund) || 0).toFixed(2)}
                 </p>
               </div>
               <div>
@@ -176,9 +183,9 @@ const Income = () => {
                 <p style={{
                   fontSize: '1.5rem',
                   fontWeight: 'bold',
-                  color: generalFundInfo.availableBalance >= 0 ? 'var(--success)' : 'var(--danger)'
+                  color: (Number(generalFundInfo.availableBalance) || 0) >= 0 ? 'var(--success)' : 'var(--danger)'
                 }}>
-                  PHP {generalFundInfo.availableBalance.toFixed(2)}
+                  PHP {(Number(generalFundInfo.availableBalance) || 0).toFixed(2)}
                 </p>
               </div>
             </div>
@@ -230,47 +237,72 @@ const Income = () => {
             No income records to display. {isTreasurer && 'Click "Record Income" to add one.'}
           </div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ borderBottom: '2px solid var(--border)' }}>
-                  <th style={{ padding: '0.75rem', textAlign: 'left', fontSize: '0.875rem', fontWeight: '600' }}>Date</th>
-                  <th style={{ padding: '0.75rem', textAlign: 'left', fontSize: '0.875rem', fontWeight: '600' }}>Revenue Source</th>
-                  <th style={{ padding: '0.75rem', textAlign: 'right', fontSize: '0.875rem', fontWeight: '600' }}>Amount</th>
-                  <th style={{ padding: '0.75rem', textAlign: 'left', fontSize: '0.875rem', fontWeight: '600' }}>Recorded By</th>
-                  <th style={{ padding: '0.75rem', textAlign: 'center', fontSize: '0.875rem', fontWeight: '600' }}>Status</th>
-                  <th style={{ padding: '0.75rem', textAlign: 'left', fontSize: '0.875rem', fontWeight: '600' }}>TX Hash</th>
-                </tr>
-              </thead>
-              <tbody>
-                {incomeRecords.map((record) => (
-                  <tr key={record._id} style={{ borderBottom: '1px solid var(--border)' }}>
-                    <td style={{ padding: '0.75rem', fontSize: '0.875rem' }}>
+          <div style={{ display: 'grid', gap: '1rem' }}>
+            {incomeRecords.map((record) => (
+              <div
+                key={record._id}
+                style={{
+                  border: '1px solid var(--border)',
+                  borderRadius: '0.5rem',
+                  padding: '1.5rem',
+                  backgroundColor: 'var(--background)',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '1rem' }}>
+                  <div>
+                    <h3 style={{ fontSize: '1rem', fontWeight: '600', marginBottom: '0.5rem' }}>
+                      {record.revenueSource}
+                    </h3>
+                    <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                      Recorded by: {record.recordedBy?.fullName || 'N/A'}
+                    </p>
+                  </div>
+                  <span className={`badge ${record.onChain ? 'badge-success' : 'badge-warning'}`}>
+                    {record.onChain ? 'On-Chain' : 'Off-Chain'}
+                  </span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
+                  <div>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
+                      Amount
+                    </p>
+                    <p style={{ fontWeight: '600' }}>
+                      PHP {Number(record.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                  <div>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
+                      Date Recorded
+                    </p>
+                    <p style={{ fontWeight: '500' }}>
                       {record.recordedAt && !isNaN(new Date(record.recordedAt).getTime())
                         ? new Date(record.recordedAt).toLocaleDateString()
                         : 'N/A'}
-                    </td>
-                    <td style={{ padding: '0.75rem', fontSize: '0.875rem' }}>
-                      {record.revenueSource}
-                    </td>
-                    <td style={{ padding: '0.75rem', fontSize: '0.875rem', textAlign: 'right', fontWeight: '500' }}>
-                      PHP {Number(record.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </td>
-                    <td style={{ padding: '0.75rem', fontSize: '0.875rem' }}>
-                      {record.recordedBy?.fullName || 'N/A'}
-                    </td>
-                    <td style={{ padding: '0.75rem', textAlign: 'center' }}>
-                      <span className={`badge ${record.onChain ? 'badge-success' : 'badge-warning'}`}>
-                        {record.onChain ? 'On-Chain' : 'Off-Chain'}
-                      </span>
-                    </td>
-                    <td style={{ padding: '0.75rem', fontSize: '0.75rem', fontFamily: 'monospace' }}>
-                      {record.txHash ? `${record.txHash.substring(0, 10)}...` : 'N/A'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </p>
+                  </div>
+                </div>
+                {record.supportingDocument && (
+                  <button
+                    onClick={() => handleViewDocument(record.supportingDocument)}
+                    className="btn btn-outline"
+                    style={{ marginTop: '1rem', width: '100%' }}
+                  >
+                    <FileText size={16} />
+                    <span>View Supporting Document</span>
+                  </button>
+                )}
+                {record.onChain && record.txHash && (
+                  <div style={{ marginTop: '1rem', padding: '0.75rem', backgroundColor: 'rgba(16, 185, 129, 0.1)', borderRadius: '0.375rem' }}>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
+                      Blockchain TX
+                    </p>
+                    <p style={{ fontSize: '0.75rem', fontFamily: 'monospace', wordBreak: 'break-all' }}>
+                      {record.txHash}
+                    </p>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -432,6 +464,49 @@ const Income = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Document Viewer Modal */}
+      {showDocumentModal && selectedDocument && (
+        <div className="modal-overlay" onClick={() => setShowDocumentModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '900px', maxHeight: '90vh' }}>
+            <div className="modal-header">
+              <h3 style={{ fontSize: '1.25rem', fontWeight: '600' }}>
+                Supporting Document
+              </h3>
+            </div>
+            <div className="modal-body" style={{ padding: 0, maxHeight: '70vh', overflow: 'auto' }}>
+              {selectedDocument.startsWith('data:application/pdf') ? (
+                <iframe
+                  src={selectedDocument}
+                  style={{ width: '100%', height: '70vh', border: 'none' }}
+                  title="Document Viewer"
+                />
+              ) : (
+                <img
+                  src={selectedDocument}
+                  alt="Supporting Document"
+                  style={{ width: '100%', height: 'auto', display: 'block' }}
+                />
+              )}
+            </div>
+            <div className="modal-footer">
+              <a
+                href={selectedDocument}
+                download="document"
+                className="btn btn-primary"
+              >
+                Download Document
+              </a>
+              <button
+                onClick={() => setShowDocumentModal(false)}
+                className="btn btn-outline"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

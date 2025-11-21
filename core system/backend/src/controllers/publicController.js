@@ -111,9 +111,9 @@ export const getPublicBlockchainData = async (req, res) => {
       expenditureContract.methods.expenditureCount().call(),
       proposalContract.methods.proposalCount().call(),
       Income.find({ onChain: true }),  // Get only blockchain-verified income records
-      Allocation.find({ status: "APPROVED" }),  // Get all approved allocations
-      Expenditure.find({ status: "APPROVED" }),  // Get all approved expenditures
-      Proposal.find({ status: "APPROVED" })  // Get all approved proposals
+      Allocation.find({ onChain: true }),  // Get only blockchain-verified allocations
+      Expenditure.find({ onChain: true }),  // Get only blockchain-verified expenditures
+      Proposal.find({ onChain: true })  // Get only blockchain-verified proposals
     ]);
 
     // Calculate totals from database (to avoid Wei conversion issues)
@@ -125,8 +125,8 @@ export const getPublicBlockchainData = async (req, res) => {
     console.log(`📊 Database records count: Income=${incomeRecords.length}, Allocations=${allocationRecords.length}, Expenditures=${expenditureRecords.length}, Proposals=${proposalRecords.length}`);
     console.log(`💰 Totals: Income=PHP ${totalIncome}, Allocations=PHP ${totalAllocations}, Expenditures=PHP ${totalExpenditures}`);
 
-    // Calculate available balance
-    const availableBalance = totalIncome - totalAllocations - totalExpenditures;
+    // Calculate available balance (Unallocated General Fund)
+    const availableBalance = totalIncome - totalAllocations;
 
     // Build income category breakdown from database amounts
     const incomeByCategory = {};
@@ -139,33 +139,41 @@ export const getPublicBlockchainData = async (req, res) => {
       }
     });
 
-    // Fetch detailed income transaction data from blockchain, fallback to database
+    // Fetch detailed income transaction data - hybrid approach
+    // From blockchain: revenueSource, treasurerAddress, documentHash, timestamp
+    // From database: amount, supportingDocument, txHash
     const incomeList = [];
     for (let i = 0; i < incomeRecords.length; i++) {
       const dbRecord = incomeRecords[i];
       try {
-        const income = await incomeContract.methods.getIncome(i).call();
+        const income = await incomeContract.methods.getIncome(i + 1).call(); // Contract uses 1-based indexing
 
         incomeList.push({
-          id: income.id ? Number(income.id) : (dbRecord._id ? i + 1 : i),
+          id: dbRecord._id ? dbRecord._id.toString() : `income-${i}`,
+          displayId: i + 1, // Sequential display ID
+          // From database
           amount: dbRecord.amount || 0,
-          revenueSource: income.revenueSource || dbRecord.revenueSource || "N/A",
-          documentHash: income.documentHash || dbRecord.documentHash || "N/A",
           supportingDocument: dbRecord.supportingDocument || null,
+          txHash: dbRecord.txHash || null,
+          // From blockchain
+          revenueSource: income.revenueSource || "N/A",
           treasurerAddress: income.treasurerAddress || "N/A",
-          timestamp: income.timestamp ? new Date(Number(income.timestamp) * 1000).toISOString() : (dbRecord.createdAt || new Date()).toISOString()
+          documentHash: income.documentHash || "N/A",
+          timestamp: income.timestamp ? new Date(Number(income.timestamp) * 1000).toISOString() : new Date().toISOString(),
         });
       } catch (err) {
-        console.error(`Error fetching income ${i} from blockchain, using database:`, err.message);
-        // Fallback to database record
+        console.error(`Error fetching income ${i} from blockchain, using database fallback:`, err.message);
+        // Fallback to database record only
         incomeList.push({
-          id: i + 1,
+          id: dbRecord._id ? dbRecord._id.toString() : `income-${i}`,
+          displayId: i + 1, // Sequential display ID
           amount: dbRecord.amount || 0,
-          revenueSource: dbRecord.revenueSource || "N/A",
-          documentHash: dbRecord.documentHash || "N/A",
           supportingDocument: dbRecord.supportingDocument || null,
+          txHash: dbRecord.txHash || null,
+          revenueSource: dbRecord.revenueSource || "N/A",
           treasurerAddress: "N/A",
-          timestamp: (dbRecord.createdAt || new Date()).toISOString()
+          documentHash: dbRecord.documentHash || "N/A",
+          timestamp: dbRecord.createdAt ? new Date(dbRecord.createdAt).toISOString() : new Date().toISOString(),
         });
       }
     }
@@ -181,37 +189,45 @@ export const getPublicBlockchainData = async (req, res) => {
       }
     });
 
-    // Fetch detailed allocation transaction data from blockchain, fallback to database
+    // Fetch detailed allocation transaction data - hybrid approach
+    // From blockchain: allocationType, fundType, documentHash, treasurerAddress, chairmanAddress, timestamp
+    // From database: amount, supportingDocument, txHash
     const allocationList = [];
     for (let i = 0; i < allocationRecords.length; i++) {
       const dbRecord = allocationRecords[i];
       try {
-        const allocation = await allocationContract.methods.getAllocation(i).call();
+        const allocation = await allocationContract.methods.getAllocation(i + 1).call(); // Contract uses 1-based indexing
 
         allocationList.push({
-          id: allocation.id ? Number(allocation.id) : (dbRecord._id ? i + 1 : i),
+          id: dbRecord._id ? dbRecord._id.toString() : `allocation-${i}`,
+          displayId: i + 1, // Sequential display ID
+          // From database
           amount: dbRecord.amount || 0,
-          allocationType: allocation.allocationType || dbRecord.purpose || "N/A",
-          fundType: allocation.fundType || dbRecord.fundSource || "N/A",
-          documentHash: allocation.documentHash || dbRecord.documentHash || "N/A",
           supportingDocument: dbRecord.supportingDocument || null,
+          txHash: dbRecord.txHash || null,
+          // From blockchain
+          allocationType: allocation.allocationType || "N/A",
+          fundType: allocation.fundType || "N/A",
+          documentHash: allocation.documentHash || "N/A",
           treasurerAddress: allocation.treasurerAddress || "N/A",
           chairmanAddress: allocation.chairmanAddress || "N/A",
-          timestamp: allocation.timestamp ? new Date(Number(allocation.timestamp) * 1000).toISOString() : (dbRecord.createdAt || new Date()).toISOString()
+          timestamp: allocation.timestamp ? new Date(Number(allocation.timestamp) * 1000).toISOString() : new Date().toISOString()
         });
       } catch (err) {
-        console.error(`Error fetching allocation ${i} from blockchain, using database:`, err.message);
-        // Fallback to database record
+        console.error(`Error fetching allocation ${i} from blockchain, using database fallback:`, err.message);
+        // Fallback to database record only
         allocationList.push({
-          id: i + 1,
+          id: dbRecord._id ? dbRecord._id.toString() : `allocation-${i}`,
+          displayId: i + 1, // Sequential display ID
           amount: dbRecord.amount || 0,
+          supportingDocument: dbRecord.supportingDocument || null,
+          txHash: dbRecord.txHash || null,
           allocationType: dbRecord.purpose || "N/A",
           fundType: dbRecord.fundSource || "N/A",
           documentHash: dbRecord.documentHash || "N/A",
-          supportingDocument: dbRecord.supportingDocument || null,
           treasurerAddress: "N/A",
           chairmanAddress: "N/A",
-          timestamp: (dbRecord.createdAt || new Date()).toISOString()
+          timestamp: dbRecord.createdAt ? new Date(dbRecord.createdAt).toISOString() : new Date().toISOString()
         });
       }
     }
@@ -227,78 +243,96 @@ export const getPublicBlockchainData = async (req, res) => {
       }
     });
 
-    // Fetch detailed expenditure transaction data from blockchain, fallback to database
+    // Fetch detailed expenditure transaction data - hybrid approach
+    // From blockchain: purpose, fundSource, documentHash, proposalId, treasurerAddress, chairmanAddress, timestamp
+    // From database: amount, supportingDocument, txHash
     const expenditureList = [];
     for (let i = 0; i < expenditureRecords.length; i++) {
       const dbRecord = expenditureRecords[i];
       try {
-        const expenditure = await expenditureContract.methods.getExpenditure(i).call();
+        const expenditure = await expenditureContract.methods.getExpenditure(i + 1).call(); // Contract uses 1-based indexing
 
         expenditureList.push({
-          id: expenditure.id ? Number(expenditure.id) : (dbRecord._id ? i + 1 : i),
+          id: dbRecord._id ? dbRecord._id.toString() : `expenditure-${i}`,
+          displayId: i + 1, // Sequential display ID
+          // From database
           amount: dbRecord.amount || 0,
-          purpose: expenditure.purpose || dbRecord.purpose || "N/A",
-          fundSource: expenditure.fundSource || dbRecord.fundSource || "N/A",
-          documentHash: expenditure.documentHash || dbRecord.documentHash || "N/A",
           supportingDocument: dbRecord.supportingDocument || null,
-          proposalId: expenditure.proposalId ? Number(expenditure.proposalId) : (dbRecord.proposalId || null),
+          txHash: dbRecord.txHash || null,
+          // From blockchain
+          purpose: expenditure.purpose || "N/A",
+          fundSource: expenditure.fundSource || "N/A",
+          documentHash: expenditure.documentHash || "N/A",
+          proposalId: (expenditure.proposalId && Number(expenditure.proposalId) > 0) ? Number(expenditure.proposalId) : null,
           treasurerAddress: expenditure.treasurerAddress || "N/A",
           chairmanAddress: expenditure.chairmanAddress || "N/A",
-          timestamp: expenditure.timestamp ? new Date(Number(expenditure.timestamp) * 1000).toISOString() : (dbRecord.createdAt || new Date()).toISOString()
+          timestamp: expenditure.timestamp ? new Date(Number(expenditure.timestamp) * 1000).toISOString() : new Date().toISOString()
         });
       } catch (err) {
-        console.error(`Error fetching expenditure ${i} from blockchain, using database:`, err.message);
-        // Fallback to database record
+        console.error(`Error fetching expenditure ${i} from blockchain, using database fallback:`, err.message);
+        // Fallback to database record only
         expenditureList.push({
-          id: i + 1,
+          id: dbRecord._id ? dbRecord._id.toString() : `expenditure-${i}`,
+          displayId: i + 1, // Sequential display ID
           amount: dbRecord.amount || 0,
+          supportingDocument: dbRecord.supportingDocument || null,
+          txHash: dbRecord.txHash || null,
           purpose: dbRecord.purpose || "N/A",
           fundSource: dbRecord.fundSource || "N/A",
           documentHash: dbRecord.documentHash || "N/A",
-          supportingDocument: dbRecord.supportingDocument || null,
           proposalId: dbRecord.proposalId || null,
           treasurerAddress: "N/A",
           chairmanAddress: "N/A",
-          timestamp: (dbRecord.createdAt || new Date()).toISOString()
+          timestamp: dbRecord.createdAt ? new Date(dbRecord.createdAt).toISOString() : new Date().toISOString()
         });
       }
     }
 
-    // Fetch proposal transaction data from blockchain, fallback to database
+    // Fetch proposal transaction data - hybrid approach
+    // From blockchain: purpose, fundSource, expenseType, proposer, documentHash, treasurerAddress, chairmanAddress, timestamp
+    // From database: amount, supportingDocument, txHash
     const proposalList = [];
     for (let i = 0; i < proposalRecords.length; i++) {
       const dbRecord = proposalRecords[i];
       try {
-        const proposal = await proposalContract.methods.getProposal(i).call();
+        const proposal = await proposalContract.methods.getProposal(i + 1).call(); // Contract uses 1-based indexing
 
         proposalList.push({
-          id: proposal.id ? Number(proposal.id) : (dbRecord._id ? i + 1 : i),
+          id: dbRecord._id ? dbRecord._id.toString() : `proposal-${i}`,
+          displayId: i + 1, // Sequential display ID
+          // From database
           amount: dbRecord.amount || 0,
-          purpose: proposal.purpose || dbRecord.purpose || "N/A",
-          fundSource: proposal.fundSource || dbRecord.fundSource || "N/A",
-          expenseType: proposal.expenseType || dbRecord.expenseType || "N/A",
-          proposer: proposal.proposer || dbRecord.proposer || "N/A",
-          documentHash: proposal.documentHash || dbRecord.documentHash || "N/A",
           supportingDocument: dbRecord.supportingDocument || null,
+          txHash: dbRecord.txHash || null,
+          // From blockchain
+          proposalId: proposal.id ? Number(proposal.id) : null, // Blockchain proposal ID
+          purpose: proposal.purpose || "N/A",
+          fundSource: proposal.fundSource || "N/A",
+          expenseType: proposal.expenseType || "N/A",
+          proposer: proposal.proposer || "N/A",
+          documentHash: proposal.documentHash || "N/A",
           treasurerAddress: proposal.treasurerAddress || "N/A",
           chairmanAddress: proposal.chairmanAddress || "N/A",
-          timestamp: proposal.timestamp ? new Date(Number(proposal.timestamp) * 1000).toISOString() : (dbRecord.createdAt || new Date()).toISOString()
+          timestamp: proposal.timestamp ? new Date(Number(proposal.timestamp) * 1000).toISOString() : new Date().toISOString()
         });
       } catch (err) {
-        console.error(`Error fetching proposal ${i} from blockchain, using database:`, err.message);
-        // Fallback to database record
+        console.error(`Error fetching proposal ${i} from blockchain, using database fallback:`, err.message);
+        // Fallback to database record only
         proposalList.push({
-          id: i + 1,
+          id: dbRecord._id ? dbRecord._id.toString() : `proposal-${i}`,
+          displayId: i + 1, // Sequential display ID
           amount: dbRecord.amount || 0,
+          supportingDocument: dbRecord.supportingDocument || null,
+          txHash: dbRecord.txHash || null,
+          proposalId: dbRecord.proposalId || null,
           purpose: dbRecord.purpose || "N/A",
           fundSource: dbRecord.fundSource || "N/A",
           expenseType: dbRecord.expenseType || "N/A",
           proposer: dbRecord.proposer || "N/A",
           documentHash: dbRecord.documentHash || "N/A",
-          supportingDocument: dbRecord.supportingDocument || null,
           treasurerAddress: "N/A",
           chairmanAddress: "N/A",
-          timestamp: (dbRecord.createdAt || new Date()).toISOString()
+          timestamp: dbRecord.createdAt ? new Date(dbRecord.createdAt).toISOString() : new Date().toISOString()
         });
       }
     }

@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { expendituresAPI } from '../services/api';
+import { expendituresAPI, proposalsAPI } from '../services/api';
 import { Plus, Upload, FileText, X } from 'lucide-react';
 
 const Expenditures = () => {
   const { isTreasurer, isChairman } = useAuth();
-  const [fundSources, setFundSources] = useState([]);
   const [expenditures, setExpenditures] = useState([]);
+  const [approvedProposals, setApprovedProposals] = useState([]);
   const [generalFundInfo, setGeneralFundInfo] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDocumentModal, setShowDocumentModal] = useState(false);
@@ -20,30 +20,18 @@ const Expenditures = () => {
   const [uploadedFileName, setUploadedFileName] = useState('');
 
   const [formData, setFormData] = useState({
-    amount: '',
-    purpose: '',
-    fundSource: '',
     supportingDocument: null,
-    proposalId: '', // Optional - link to a proposal
+    proposalId: '', // Required - link to a proposal
   });
 
+  const [selectedProposal, setSelectedProposal] = useState(null);
+  const [selectedFundSource, setSelectedFundSource] = useState(null);
+
   useEffect(() => {
-    fetchFundSources();
     fetchExpenditures();
     fetchGeneralFund();
+    fetchApprovedProposals();
   }, []);
-
-  const fetchFundSources = async () => {
-    try {
-      const response = await expendituresAPI.getFundSources();
-      setFundSources(response.data.data);
-    } catch (error) {
-      setMessage({
-        type: 'error',
-        text: error.response?.data?.message || 'Failed to fetch fund sources',
-      });
-    }
-  };
 
   const fetchExpenditures = async () => {
     try {
@@ -63,6 +51,17 @@ const Expenditures = () => {
     }
   };
 
+  const fetchApprovedProposals = async () => {
+    try {
+      const response = await proposalsAPI.getAll();
+      // Filter only approved proposals
+      const approved = response.data.data.filter(proposal => proposal.status === 'APPROVED');
+      setApprovedProposals(approved);
+    } catch (error) {
+      console.error('Failed to fetch approved proposals:', error);
+    }
+  };
+
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -79,15 +78,23 @@ const Expenditures = () => {
     }
   };
 
+  const handleProposalChange = (e) => {
+    const proposalId = e.target.value;
+    setFormData({ ...formData, proposalId });
+    setFormErrors({ ...formErrors, proposalId: false });
+
+    // Find and set the selected proposal details
+    const proposal = approvedProposals.find(p => p._id === proposalId);
+    setSelectedProposal(proposal || null);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage({ type: '', text: '' });
 
     // Client-side validation
     const errors = {};
-    if (!formData.purpose) errors.purpose = true;
-    if (!formData.amount) errors.amount = true;
-    if (!formData.fundSource) errors.fundSource = true;
+    if (!formData.proposalId) errors.proposalId = true;
     if (!formData.supportingDocument) errors.supportingDocument = true;
 
     if (Object.keys(errors).length > 0) {
@@ -102,25 +109,17 @@ const Expenditures = () => {
     setLoading(true);
 
     try {
-      const submitData = { ...formData };
-      // Remove proposalId if empty
-      if (!submitData.proposalId) {
-        delete submitData.proposalId;
-      }
-
-      await expendituresAPI.create(submitData);
+      await expendituresAPI.create(formData);
       setMessage({
         type: 'success',
         text: 'Expenditure submitted successfully and is pending approval',
       });
       setShowCreateModal(false);
       setFormData({
-        amount: '',
-        purpose: '',
-        fundSource: '',
         supportingDocument: null,
         proposalId: '',
       });
+      setSelectedProposal(null);
       setFormErrors({});
       setUploadedFileName('');
       fetchExpenditures();
@@ -215,19 +214,10 @@ const Expenditures = () => {
           </h1>
           <p style={{ color: 'var(--text-secondary)' }}>
             {isTreasurer
-              ? 'Submit and manage expenditure records'
+              ? 'Click on approved proposals below to record expenditures'
               : 'Review and approve expenditure requests'}
           </p>
         </div>
-        {isTreasurer && (
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="btn btn-primary"
-          >
-            <Plus size={16} />
-            <span>New Expenditure</span>
-          </button>
-        )}
       </div>
 
       {/* General Fund Information Card */}
@@ -240,22 +230,14 @@ const Expenditures = () => {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
               <div>
                 <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
-                  Total Income (General Fund)
-                </p>
-                <p style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--success)' }}>
-                  PHP {generalFundInfo.generalFund.toFixed(2)}
-                </p>
-              </div>
-              <div>
-                <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
-                  Available Balance
+                  Income Balance
                 </p>
                 <p style={{
                   fontSize: '1.5rem',
                   fontWeight: 'bold',
-                  color: generalFundInfo.availableBalance >= 0 ? 'var(--success)' : 'var(--danger)'
+                  color: (Number(generalFundInfo.availableBalance) || 0) >= 0 ? 'var(--success)' : 'var(--danger)'
                 }}>
-                  PHP {generalFundInfo.availableBalance.toFixed(2)}
+                  PHP {(Number(generalFundInfo.availableBalance) || 0).toFixed(2)}
                 </p>
               </div>
               <div>
@@ -263,7 +245,7 @@ const Expenditures = () => {
                   Total Expenditures
                 </p>
                 <p style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--primary)' }}>
-                  PHP {generalFundInfo.totalExpenditures.toFixed(2)}
+                  PHP {(Number(generalFundInfo.totalExpenditures) || 0).toFixed(2)}
                 </p>
               </div>
             </div>
@@ -277,27 +259,173 @@ const Expenditures = () => {
         </div>
       )}
 
-      {/* Fund Sources Info */}
-      <div className="card" style={{ marginBottom: '2rem' }}>
-        <h2 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '1rem' }}>
-          Available Fund Sources
-        </h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '0.75rem' }}>
-          {fundSources.map((source, index) => (
-            <div
-              key={index}
-              style={{
-                padding: '0.75rem',
-                backgroundColor: 'var(--background)',
-                borderRadius: '0.375rem',
-                fontSize: '0.875rem',
-              }}
-            >
-              {source}
+      {/* Approved Proposals by Fund Source */}
+      {isTreasurer && (
+        <div className="card" style={{ marginBottom: '2rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: '600' }}>
+              {selectedFundSource ? `${selectedFundSource} - Approved Proposals` : 'Select Fund Source Category'}
+            </h2>
+            {selectedFundSource && (
+              <button
+                onClick={() => setSelectedFundSource(null)}
+                className="btn btn-outline"
+                style={{ fontSize: '0.875rem', padding: '0.5rem 1rem' }}
+              >
+                ← Back to Categories
+              </button>
+            )}
+          </div>
+
+          {approvedProposals.length === 0 ? (
+            <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', textAlign: 'center', padding: '2rem' }}>
+              No approved proposals available. Proposals must be approved before recording expenditures.
             </div>
-          ))}
+          ) : !selectedFundSource ? (
+            // Show Fund Source Categories
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+              {(() => {
+                // Group proposals by fund source
+                const groupedProposals = {};
+                approvedProposals.forEach(proposal => {
+                  if (!groupedProposals[proposal.fundSource]) {
+                    groupedProposals[proposal.fundSource] = [];
+                  }
+                  groupedProposals[proposal.fundSource].push(proposal);
+                });
+
+                return Object.keys(groupedProposals).map((fundSource) => {
+                  const proposals = groupedProposals[fundSource];
+                  const totalAmount = proposals.reduce((sum, p) => sum + Number(p.amount), 0);
+                  const recordedCount = proposals.filter(p =>
+                    expenditures.some(exp => exp.proposalId === p._id && (exp.status === 'PROPOSED' || exp.status === 'APPROVED'))
+                  ).length;
+
+                  return (
+                    <div
+                      key={fundSource}
+                      onClick={() => setSelectedFundSource(fundSource)}
+                      style={{
+                        border: '2px solid var(--primary)',
+                        borderRadius: '0.5rem',
+                        padding: '1.5rem',
+                        backgroundColor: 'var(--background)',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-4px)';
+                        e.currentTarget.style.boxShadow = '0 8px 16px rgba(0,0,0,0.15)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }}
+                    >
+                      <h3 style={{ fontSize: '1rem', fontWeight: '600', marginBottom: '1rem', color: 'var(--primary)' }}>
+                        {fundSource}
+                      </h3>
+                      <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                          <span>Total Proposals:</span>
+                          <span style={{ fontWeight: '600', color: 'var(--text)' }}>{proposals.length}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                          <span>Expenditures Recorded:</span>
+                          <span style={{ fontWeight: '600', color: 'var(--success)' }}>{recordedCount}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span>Pending:</span>
+                          <span style={{ fontWeight: '600', color: 'var(--warning)' }}>{proposals.length - recordedCount}</span>
+                        </div>
+                      </div>
+                      <div style={{ paddingTop: '0.75rem', borderTop: '1px solid var(--border)' }}>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
+                          Total Amount
+                        </div>
+                        <div style={{ fontSize: '1.25rem', fontWeight: '700', color: 'var(--primary)' }}>
+                          PHP {totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </div>
+                      </div>
+                      <p style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: '500', marginTop: '1rem' }}>
+                        Click to view proposals →
+                      </p>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+          ) : (
+            // Show Proposals for Selected Fund Source
+            <div style={{ display: 'grid', gap: '1rem' }}>
+              {approvedProposals
+                .filter(proposal => proposal.fundSource === selectedFundSource)
+                .map((proposal) => {
+                  const hasExpenditure = expenditures.some(exp =>
+                    exp.proposalId === proposal._id && (exp.status === 'PROPOSED' || exp.status === 'APPROVED')
+                  );
+
+                  return (
+                    <div
+                      key={proposal._id}
+                      onClick={() => {
+                        if (!hasExpenditure) {
+                          setFormData({ ...formData, proposalId: proposal._id });
+                          setSelectedProposal(proposal);
+                          setShowCreateModal(true);
+                        }
+                      }}
+                      style={{
+                        border: hasExpenditure ? '1px solid var(--border)' : '2px solid var(--primary)',
+                        borderRadius: '0.5rem',
+                        padding: '1rem',
+                        backgroundColor: hasExpenditure ? 'var(--background-secondary)' : 'var(--background)',
+                        cursor: hasExpenditure ? 'not-allowed' : 'pointer',
+                        opacity: hasExpenditure ? 0.6 : 1,
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '0.5rem' }}>
+                        <div style={{ flex: 1 }}>
+                          <h3 style={{ fontSize: '1rem', fontWeight: '600', marginBottom: '0.25rem' }}>
+                            {proposal.purpose}
+                          </h3>
+                          <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                            {proposal.expenseType}
+                          </p>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <p style={{ fontSize: '1.125rem', fontWeight: '700', color: 'var(--primary)' }}>
+                            PHP {Number(proposal.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                          </p>
+                          {hasExpenditure && (
+                            <span style={{
+                              display: 'inline-block',
+                              marginTop: '0.25rem',
+                              padding: '0.25rem 0.5rem',
+                              backgroundColor: 'var(--success-light)',
+                              color: 'var(--success)',
+                              borderRadius: '0.25rem',
+                              fontSize: '0.75rem',
+                              fontWeight: '600'
+                            }}>
+                              Expenditure Recorded
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      {!hasExpenditure && (
+                        <p style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: '500', marginTop: '0.5rem' }}>
+                          Click to record expenditure for this proposal
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+            </div>
+          )}
         </div>
-      </div>
+      )}
 
       {/* Expenditures List */}
       <div className="card">
@@ -369,8 +497,8 @@ const Expenditures = () => {
                       Created
                     </p>
                     <p style={{ fontWeight: '500' }}>
-                      {expenditure.recordedAt && !isNaN(new Date(expenditure.recordedAt).getTime())
-                        ? new Date(expenditure.recordedAt).toLocaleDateString()
+                      {expenditure.createdAt && !isNaN(new Date(expenditure.createdAt).getTime())
+                        ? new Date(expenditure.createdAt).toLocaleDateString()
                         : 'N/A'}
                     </p>
                   </div>
@@ -435,121 +563,40 @@ const Expenditures = () => {
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3 style={{ fontSize: '1.25rem', fontWeight: '600' }}>
-                Submit New Expenditure
+                Record Expenditure from Approved Proposal
               </h3>
             </div>
             <form onSubmit={handleSubmit}>
               <div className="modal-body">
-                <div style={{ marginBottom: '1rem' }}>
-                  <label htmlFor="purpose" className="label">
-                    Purpose/Description *
-                  </label>
-                  <textarea
-                    id="purpose"
-                    name="purpose"
-                    className="textarea"
-                    value={formData.purpose}
-                    onChange={(e) => {
-                      setFormData({ ...formData, purpose: e.target.value });
-                      setFormErrors({ ...formErrors, purpose: false });
-                    }}
-                    required
-                    placeholder="Describe the purpose of this expenditure..."
-                    rows="3"
-                    style={{
-                      borderColor: formErrors.purpose ? '#ef4444' : undefined,
-                      borderWidth: formErrors.purpose ? '2px' : undefined,
-                    }}
-                  />
-                  {formErrors.purpose && (
-                    <p style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.25rem' }}>
-                      This field is required
-                    </p>
-                  )}
-                </div>
-
-                <div style={{ marginBottom: '1rem' }}>
-                  <label htmlFor="amount" className="label">
-                    Amount (PHP) *
-                  </label>
-                  <input
-                    type="number"
-                    id="amount"
-                    name="amount"
-                    className="input"
-                    value={formData.amount}
-                    onChange={(e) => {
-                      setFormData({ ...formData, amount: e.target.value });
-                      setFormErrors({ ...formErrors, amount: false });
-                    }}
-                    required
-                    min="0"
-                    step="0.01"
-                    placeholder="0.00"
-                    style={{
-                      borderColor: formErrors.amount ? '#ef4444' : undefined,
-                      borderWidth: formErrors.amount ? '2px' : undefined,
-                    }}
-                  />
-                  {formErrors.amount && (
-                    <p style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.25rem' }}>
-                      This field is required
-                    </p>
-                  )}
-                </div>
-
-                <div style={{ marginBottom: '1rem' }}>
-                  <label htmlFor="fundSource" className="label">
-                    Fund Source *
-                  </label>
-                  <select
-                    id="fundSource"
-                    name="fundSource"
-                    className="select"
-                    value={formData.fundSource}
-                    onChange={(e) => {
-                      setFormData({ ...formData, fundSource: e.target.value });
-                      setFormErrors({ ...formErrors, fundSource: false });
-                    }}
-                    required
-                    style={{
-                      borderColor: formErrors.fundSource ? '#ef4444' : undefined,
-                      borderWidth: formErrors.fundSource ? '2px' : undefined,
-                    }}
-                  >
-                    <option value="">Select fund source</option>
-                    {fundSources.map((source, index) => (
-                      <option key={index} value={source}>
-                        {source}
-                      </option>
-                    ))}
-                  </select>
-                  {formErrors.fundSource && (
-                    <p style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.25rem' }}>
-                      This field is required
-                    </p>
-                  )}
-                </div>
-
-                <div style={{ marginBottom: '1rem' }}>
-                  <label htmlFor="proposalId" className="label">
-                    Linked Proposal ID (Optional)
-                  </label>
-                  <input
-                    type="text"
-                    id="proposalId"
-                    name="proposalId"
-                    className="input"
-                    value={formData.proposalId}
-                    onChange={(e) =>
-                      setFormData({ ...formData, proposalId: e.target.value })
-                    }
-                    placeholder="Enter proposal ID if this expenditure is linked to a proposal"
-                  />
-                  <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
-                    Leave empty if not linked to any proposal
-                  </p>
-                </div>
+                {/* Display selected proposal details */}
+                {selectedProposal && (
+                  <div style={{
+                    marginBottom: '1rem',
+                    padding: '1rem',
+                    backgroundColor: 'var(--background)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '0.5rem'
+                  }}>
+                    <h4 style={{ fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.75rem', color: 'var(--primary)' }}>
+                      Proposal Details
+                    </h4>
+                    <div style={{ fontSize: '0.875rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      <div>
+                        <strong>Purpose:</strong>
+                        <p style={{ marginTop: '0.25rem', color: 'var(--text-secondary)' }}>{selectedProposal.purpose}</p>
+                      </div>
+                      <div>
+                        <strong>Amount:</strong> PHP {Number(selectedProposal.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      </div>
+                      <div>
+                        <strong>Fund Source:</strong> {selectedProposal.fundSource}
+                      </div>
+                      <div>
+                        <strong>Expense Type:</strong> {selectedProposal.expenseType}
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div style={{ marginBottom: '1rem' }}>
                   <label htmlFor="supportingDocument" className="label">
@@ -706,13 +753,6 @@ const Expenditures = () => {
               <h3 style={{ fontSize: '1.25rem', fontWeight: '600' }}>
                 Supporting Document
               </h3>
-              <button
-                onClick={() => setShowDocumentModal(false)}
-                className="btn btn-outline"
-                style={{ padding: '0.5rem' }}
-              >
-                <X size={20} />
-              </button>
             </div>
             <div className="modal-body" style={{ padding: 0, maxHeight: '70vh', overflow: 'auto' }}>
               {selectedDocument.startsWith('data:application/pdf') ? (

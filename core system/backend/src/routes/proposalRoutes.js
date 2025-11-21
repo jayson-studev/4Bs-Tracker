@@ -1,7 +1,7 @@
 import express from "express";
 import { requireAuth } from "../middlewares/auth.js";
 import { requireActiveOfficial, requireRole } from "../middlewares/officialAccess.js";
-import { submitProposal, approveProposal, rejectProposal, getAllProposals, getProposalFundSources } from "../controllers/proposalController.js";
+import { submitProposal, approveProposal, rejectProposal, getAllProposals, getProposalFundSources, getCategoryBudgets } from "../controllers/proposalController.js";
 
 const router = express.Router();
 
@@ -11,6 +11,14 @@ router.get(
   requireAuth,
   requireActiveOfficial,
   getProposalFundSources
+);
+
+// Get category budgets (accessible to all authenticated officials)
+router.get(
+  "/category-budgets",
+  requireAuth,
+  requireActiveOfficial,
+  getCategoryBudgets
 );
 
 // Get all proposals (accessible to all authenticated officials)

@@ -29,7 +29,7 @@ const calculateAvailableBalance = async () => {
     totalAllocations,
     totalExpenditures,
     totalProposals,
-    availableBalance: totalIncome - totalAllocations - totalExpenditures - totalProposals
+    availableBalance: totalIncome - totalAllocations // Unallocated General Fund
   };
 };
 

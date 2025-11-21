@@ -193,7 +193,7 @@ const Dashboard = () => {
                   Total Income (General Fund)
                 </p>
                 <p style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--success)' }}>
-                  PHP {generalFundInfo.generalFund.toFixed(2)}
+                  PHP {(Number(generalFundInfo.generalFund) || 0).toFixed(2)}
                 </p>
               </div>
               <div>
@@ -201,7 +201,7 @@ const Dashboard = () => {
                   Total Allocations
                 </p>
                 <p style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>
-                  PHP {generalFundInfo.totalAllocations.toFixed(2)}
+                  PHP {(Number(generalFundInfo.totalAllocations) || 0).toFixed(2)}
                 </p>
               </div>
               <div>
@@ -209,7 +209,7 @@ const Dashboard = () => {
                   Total Expenditures
                 </p>
                 <p style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>
-                  PHP {generalFundInfo.totalExpenditures.toFixed(2)}
+                  PHP {(Number(generalFundInfo.totalExpenditures) || 0).toFixed(2)}
                 </p>
               </div>
               <div>
@@ -217,19 +217,19 @@ const Dashboard = () => {
                   Total Proposals
                 </p>
                 <p style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>
-                  PHP {generalFundInfo.totalProposals.toFixed(2)}
+                  PHP {(Number(generalFundInfo.totalProposals) || 0).toFixed(2)}
                 </p>
               </div>
               <div>
                 <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
-                  Available Balance
+                  Income   Balance
                 </p>
                 <p style={{
                   fontSize: '1.5rem',
                   fontWeight: 'bold',
-                  color: generalFundInfo.availableBalance >= 0 ? 'var(--success)' : 'var(--danger)'
+                  color: (Number(generalFundInfo.availableBalance) || 0) >= 0 ? 'var(--success)' : 'var(--danger)'
                 }}>
-                  PHP {generalFundInfo.availableBalance.toFixed(2)}
+                  PHP {(Number(generalFundInfo.availableBalance) || 0).toFixed(2)}
                 </p>
               </div>
             </div>
